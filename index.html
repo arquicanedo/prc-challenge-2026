@@ -53,7 +53,7 @@ const ago = iso => {
 };
 // A GitHub Action refreshes it every 30 min; see README. The competition API itself sends no
 // call it directly.
-fetch('data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
+fetch('https://labs-sector.fly.dev:8443/data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
   const multi = d.teams.filter(t => t.n > 1);
   const tb = document.querySelector('#t tbody');
   multi.forEach((t, i) => {
