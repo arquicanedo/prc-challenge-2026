@@ -18,6 +18,9 @@
        position: sticky; top: 0; background: #fff }
   th:nth-child(2), td:nth-child(2) { text-align: left; width: 100% }
   td.team { font-weight: 500 }
+  td.team a { color: inherit; text-decoration: none; border-bottom: 1px solid #d9d9d9 }
+  td.team a:hover { border-bottom-color: #111 }
+  td.team a:focus-visible { outline: 2px solid #111; outline-offset: 2px; border-radius: 2px }
   td.num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace }
   td.dim { color: #999 }
   tr:hover td { background: #fafafa }
@@ -44,6 +47,11 @@
   <footer id="f"></footer>
 </main>
 <script>
+// Requested by espinielli (organiser) 2026-09-08 so this page can be linked from the
+// official site: team name -> that team's page. Format given by him verbatim; it could not
+// be verified from here because ansperformance.eu returns 403 to every non-browser client,
+// including its own dc2026 index, so a wrong name and a real one look identical to curl.
+const TEAM_BASE = 'https://ansperformance.eu/study/data-challenge/dc2026/teams/';
 const fmt = n => n.toFixed(4);
 const ago = iso => {
   const h = (Date.now() - new Date(iso)) / 36e5;
@@ -65,7 +73,13 @@ fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r
       '<td class="num">' + fmt(t.best) + '</td>' +
       '<td class="num dim">' + t.n + '</td>' +
       '<td class="num dim">' + ago(t.lastAt) + '</td>';
-    tr.children[1].textContent = t.team;
+    // Team names come from the competition API. The label goes in via textContent and the
+    // href via encodeURIComponent; this cell is never built with innerHTML.
+    const a = document.createElement('a');
+    a.href = TEAM_BASE + encodeURIComponent(t.team) + '.html';
+    a.textContent = t.team;
+    a.rel = 'noopener';
+    tr.children[1].appendChild(a);
     tb.appendChild(tr);
   });
   const mins = Math.round((Date.now() - new Date(d.updated)) / 60000);
