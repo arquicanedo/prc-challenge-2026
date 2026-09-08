@@ -4,5 +4,10 @@
 
 Best submission per team, for teams with more than one submission.
 
-A static page. The data it reads is served separately; see the sector repo
-(issue #440) for where that runs and when it gets decommissioned.
+A static page. It reads `https://prc-leaderboard.fly.dev/data.json`, a small service
+that mirrors the competition's own `/leaderboard` endpoint with CORS, groups it
+best-per-team, and stores nothing of its own. That endpoint sends no
+`access-control-allow-origin`, which is the only reason the mirror exists.
+
+Licensed MIT (see `LICENSE`). The **data** is not covered by that: it comes from the
+PRC Data Challenge 2026 API and is only regrouped here.
