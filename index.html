@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRC Data Challenge 2026 - leaderboard</title>
+<style>
+  :root { color-scheme: light }
+  body { margin: 0; background: #fff; color: #111;
+         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 20px 80px }
+  h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px }
+  p.sub { margin: 0 0 28px; color: #666; font-size: 13px }
+  .wrap { overflow-x: auto }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #eee; white-space: nowrap }
+  th { font-weight: 500; color: #666; font-size: 12px; border-bottom: 1px solid #ddd;
+       position: sticky; top: 0; background: #fff }
+  th:nth-child(2), td:nth-child(2) { text-align: left; width: 100% }
+  td.team { font-weight: 500 }
+  td.num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace }
+  td.dim { color: #999 }
+  tr:hover td { background: #fafafa }
+  .banner { display: inline-block; margin: 0 0 24px; padding: 6px 11px; border: 1px solid #e2e2e2;
+            border-radius: 4px; background: #fafafa; color: #555; font-size: 12.5px }
+  footer { margin-top: 28px; color: #999; font-size: 12px }
+  #msg { color: #666; padding: 20px 0 }
+</style>
+</head>
+<body>
+<main>
+  <h1>PRC Data Challenge 2026</h1>
+  <p class="sub">Best submission per team, for teams with more than one submission.</p>
+  <div class="banner" id="age">Loading&hellip;</div>
+  <div id="msg">Loading&hellip;</div>
+  <div class="wrap">
+    <table id="t" hidden>
+      <thead><tr>
+        <th>#</th><th>Team</th><th>Best</th><th>Subs</th><th>Last activity</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <footer id="f"></footer>
+</main>
+<script>
+const fmt = n => n.toFixed(4);
+const ago = iso => {
+  const h = (Date.now() - new Date(iso)) / 36e5;
+  if (h < 1) return Math.max(0, Math.round(h * 60)) + 'm ago';
+  if (h < 48) return Math.round(h) + 'h ago';
+  return Math.round(h / 24) + 'd ago';
+};
+// A GitHub Action refreshes it every 30 min; see README. The competition API itself sends no
+// call it directly.
+fetch('data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
+  const multi = d.teams.filter(t => t.n > 1);
+  const tb = document.querySelector('#t tbody');
+  multi.forEach((t, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="num dim">' + (i + 1) + '</td>' +
+      '<td class="team"></td>' +
+      '<td class="num">' + fmt(t.best) + '</td>' +
+      '<td class="num dim">' + t.n + '</td>' +
+      '<td class="num dim">' + ago(t.lastAt) + '</td>';
+    tr.children[1].textContent = t.team;
+    tb.appendChild(tr);
+  });
+  const mins = Math.round((Date.now() - new Date(d.updated)) / 60000);
+  const when = mins < 90 ? mins + ' minutes ago'
+             : mins < 2880 ? Math.round(mins / 60) + ' hours ago'
+             : Math.round(mins / 1440) + ' days ago';
+  document.getElementById('age').textContent = 'Data refreshed ' + when + '.';
+  document.getElementById('msg').hidden = true;
+  document.getElementById('t').hidden = false;
+  document.getElementById('f').textContent =
+    multi.length + ' teams with more than one submission \u00b7 ' +
+    (d.teams.length - multi.length) + ' single-submission teams hidden \u00b7 ' +
+    d.totalSubmissions + ' submissions total \u00b7 as of ' + new Date(d.updated).toUTCString();
+}).catch(e => { document.getElementById('msg').textContent = 'Could not load: ' + e.message; });
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
