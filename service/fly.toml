@@ -1,0 +1,33 @@
+# DC2026 leaderboard mirror. Its OWN app, deliberately: it briefly shared a machine with
+# another service, which meant every deploy here restarted that service and wiped its
+# in-memory state. A mirror that redeploys often should not sit on someone else's process.
+#
+# dfw because the competition API's host refuses some cloud egress -- Vercel's serverless
+# functions and Fly's ams both time out on it, dfw answers in ~0.9s.
+app = "prc-leaderboard"
+primary_region = "dfw"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Scales to zero. There is no background timer to keep alive (main.py fetches on demand
+  # and refreshes behind the response), so an idle machine has nothing to do and should
+  # not be paid for. "suspend" snapshots memory, so a resumed machine keeps its cache and
+  # the first visitor back does not pay the ~3s cold fetch; Fly falls back to a full stop
+  # where suspend is unavailable, which main.py handles by fetching synchronously.
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
