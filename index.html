@@ -51,9 +51,10 @@ const ago = iso => {
   if (h < 48) return Math.round(h) + 'h ago';
   return Math.round(h / 24) + 'd ago';
 };
-// A GitHub Action refreshes it every 30 min; see README. The competition API itself sends no
-// call it directly.
-fetch('https://labs-sector.fly.dev:8443/data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
+// The competition API sends no access-control-allow-origin, so a browser cannot read it
+// directly. prc-leaderboard is a small Fly service in dfw that mirrors it with CORS; it
+// scales to zero and refreshes behind the response, so a warm read is instant.
+fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
   const multi = d.teams.filter(t => t.n > 1);
   const tb = document.querySelector('#t tbody');
   multi.forEach((t, i) => {
