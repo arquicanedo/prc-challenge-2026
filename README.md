@@ -4,11 +4,5 @@
 
 Best submission per team, for teams with more than one submission.
 
-Data comes from the competition's public submissions API and is refreshed periodically.
-
-## Files
-
-    index.html            the page
-    data.json             the data shown
-    refresh.js            regenerates data.json
-    api/leaderboard.js    reads the API and groups best-per-team
+A static page. The data it reads is served separately; see the sector repo
+(issue #440) for where that runs and when it gets decommissioned.
