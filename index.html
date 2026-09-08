@@ -27,13 +27,17 @@
   .banner { display: inline-block; margin: 0 0 24px; padding: 6px 11px; border: 1px solid #e2e2e2;
             border-radius: 4px; background: #fafafa; color: #555; font-size: 12.5px }
   footer { margin-top: 28px; color: #999; font-size: 12px }
+  .controls { margin-top: 18px; font-size: 12.5px; color: #555 }
+  .controls label { cursor: pointer; user-select: none }
+  .controls input { vertical-align: -1px; margin-right: 6px }
+  table.hide-single tr.single { display: none }
   #msg { color: #666; padding: 20px 0 }
 </style>
 </head>
 <body>
 <main>
   <h1>PRC Data Challenge 2026</h1>
-  <p class="sub">Best submission per team, for teams with more than one submission.</p>
+  <p class="sub">Best submission per team.</p>
   <div class="banner" id="age">Loading&hellip;</div>
   <div id="msg">Loading&hellip;</div>
   <div class="wrap">
@@ -43,6 +47,9 @@
       </tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+  <div class="controls">
+    <label><input type="checkbox" id="hs"> Hide teams with a single submission</label>
   </div>
   <footer id="f"></footer>
 </main>
@@ -63,10 +70,15 @@ const ago = iso => {
 // directly. prc-leaderboard is a small Fly service in dfw that mirrors it with CORS; it
 // scales to zero and refreshes behind the response, so a warm read is instant.
 fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r => r.json()).then(d => {
-  const multi = d.teams.filter(t => t.n > 1);
+  // Rank over EVERY team, so the numbers match the official board. The page used to
+  // filter n > 1 before ranking, which shifted every rank below the first single-
+  // submission team and, worse, could hide the leader outright: a replay of the board
+  // shows 35 moments when the team in first place had exactly one submission, including
+  // youthful-giraffe leading on their debut from 2026-09-06 14:27Z to 20:31Z.
   const tb = document.querySelector('#t tbody');
-  multi.forEach((t, i) => {
+  d.teams.forEach((t, i) => {
     const tr = document.createElement('tr');
+    if (t.n === 1) tr.className = 'single';
     tr.innerHTML =
       '<td class="num dim">' + (i + 1) + '</td>' +
       '<td class="team"></td>' +
@@ -89,10 +101,18 @@ fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r
   document.getElementById('age').textContent = 'Data refreshed ' + when + '.';
   document.getElementById('msg').hidden = true;
   document.getElementById('t').hidden = false;
-  document.getElementById('f').textContent =
-    multi.length + ' teams with more than one submission \u00b7 ' +
-    (d.teams.length - multi.length) + ' single-submission teams hidden \u00b7 ' +
+  const singles = d.teams.filter(t => t.n === 1).length;
+  const table = document.getElementById('t'), box = document.getElementById('hs');
+  const foot = () => document.getElementById('f').textContent =
+    (box.checked ? d.teams.length - singles : d.teams.length) + ' teams shown \u00b7 ' +
+    singles + ' with a single submission' + (box.checked ? ' (hidden)' : '') + ' \u00b7 ' +
     d.totalSubmissions + ' submissions total \u00b7 as of ' + new Date(d.updated).toUTCString();
+  // Per-viewer convenience only; a browser that refuses storage still works normally.
+  const apply = () => { table.classList.toggle('hide-single', box.checked); foot();
+    try { localStorage.setItem('hideSingle', box.checked ? '1' : '0'); } catch (e) {} };
+  try { box.checked = localStorage.getItem('hideSingle') === '1'; } catch (e) {}
+  box.addEventListener('change', apply);
+  apply();
 }).catch(e => { document.getElementById('msg').textContent = 'Could not load: ' + e.message; });
 </script>
 <script defer src="/_vercel/insights/script.js"></script>

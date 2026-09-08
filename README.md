@@ -2,7 +2,7 @@
 
 <https://prc-challenge-2026.vercel.app>
 
-Best submission per team, for teams with more than one submission.
+Best submission per team.
 
 A static page. It reads `https://prc-leaderboard.fly.dev/data.json`, a small service
 that mirrors the competition's own `/leaderboard` endpoint with CORS, groups it
