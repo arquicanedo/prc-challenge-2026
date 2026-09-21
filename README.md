@@ -2,7 +2,8 @@
 
 <https://prc-challenge-2026.vercel.app>
 
-Best submission per team.
+Best submission per team. Click a column heading to sort it; a second click reverses
+it. `#` keeps the rank the official board gives the team, whatever the sort.
 
 A static page. It reads `https://prc-leaderboard.fly.dev/data.json`, a small service
 that mirrors the competition's own `/leaderboard` endpoint with CORS, groups it

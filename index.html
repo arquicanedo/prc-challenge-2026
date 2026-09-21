@@ -16,6 +16,18 @@
   th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #eee; white-space: nowrap }
   th { font-weight: 500; color: #666; font-size: 12px; border-bottom: 1px solid #ddd;
        position: sticky; top: 0; background: #fff }
+  /* The button fills the cell, so the whole heading is the click target, and it is a real
+     button so the keyboard reaches it. The arrow is always laid out and only made visible
+     on the sorted column, so switching columns does not shift the header text. */
+  th[data-k] { padding: 0 }
+  th button { display: block; box-sizing: border-box; width: 100%; padding: 7px 10px;
+              font: inherit; color: inherit; background: none; border: 0;
+              text-align: inherit; cursor: pointer }
+  th button:hover { color: #111 }
+  th button:focus-visible { outline: 2px solid #111; outline-offset: -2px }
+  th button::after { content: ' \25B4'; visibility: hidden }
+  th[aria-sort=ascending] button::after { visibility: visible }
+  th[aria-sort=descending] button::after { content: ' \25BE'; visibility: visible }
   th:nth-child(2), td:nth-child(2) { text-align: left; width: 100% }
   td.team { font-weight: 500 }
   td.team a { color: inherit; text-decoration: none; border-bottom: 1px solid #d9d9d9 }
@@ -37,13 +49,17 @@
 <body>
 <main>
   <h1>PRC Data Challenge 2026</h1>
-  <p class="sub">Best submission per team.</p>
+  <p class="sub">Best submission per team. Click a column to sort.</p>
   <div class="banner" id="age">Loading&hellip;</div>
   <div id="msg">Loading&hellip;</div>
   <div class="wrap">
     <table id="t" hidden>
       <thead><tr>
-        <th>#</th><th>Team</th><th>Best</th><th>Subs</th><th>Last activity</th>
+        <th data-k="rank" aria-sort="ascending"><button type="button">#</button></th>
+        <th data-k="team"><button type="button">Team</button></th>
+        <th data-k="best"><button type="button">Best</button></th>
+        <th data-k="n"><button type="button">Subs</button></th>
+        <th data-k="at"><button type="button">Last activity</button></th>
       </tr></thead>
       <tbody></tbody>
     </table>
@@ -76,7 +92,7 @@ fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r
   // shows 35 moments when the team in first place had exactly one submission, including
   // youthful-giraffe leading on their debut from 2026-09-06 14:27Z to 20:31Z.
   const tb = document.querySelector('#t tbody');
-  d.teams.forEach((t, i) => {
+  const rows = d.teams.map((t, i) => {
     const tr = document.createElement('tr');
     if (t.n === 1) tr.className = 'single';
     tr.innerHTML =
@@ -92,8 +108,52 @@ fetch('https://prc-leaderboard.fly.dev/data.json', { cache: 'no-cache' }).then(r
     a.textContent = t.team;
     a.rel = 'noopener';
     tr.children[1].appendChild(a);
-    tb.appendChild(tr);
+    // The cells are display text -- 'Last activity' is "6h ago" and would sort as a string,
+    // so every sortable value is kept here, next to the row, in the form it compares in.
+    return { tr, rank: i + 1, team: t.team, best: t.best, n: t.n, at: Date.parse(t.lastAt) || 0 };
   });
+
+  // Sorting, asked for by espinielli (organiser) 2026-09-21, mainly for 'Last activity':
+  // he wants to see which teams are still working. The rank in '#' is the one computed
+  // above, over every team; it travels with its row instead of being renumbered, so it
+  // stays the rank the official board gives that team under every sort.
+  const KEYS = {
+    rank: { of: r => r.rank, dir:  1 },
+    team: { of: r => r.team, dir:  1, text: true },
+    best: { of: r => r.best, dir:  1 },  // best is a minimum, so ascending is best-first
+    n:    { of: r => r.n,    dir: -1 },
+    at:   { of: r => r.at,   dir: -1 }   // most recently active first
+  };
+  let key = 'rank', dir = 1;
+  const ths = Array.from(document.querySelectorAll('#t th'));
+  const sort = () => {
+    const k = KEYS[key];
+    rows.sort((a, b) => {
+      const x = k.of(a), y = k.of(b);
+      const c = k.text ? x.localeCompare(y) : x - y;
+      return c ? c * dir : a.rank - b.rank;  // ties break on rank, never on DOM order
+    });
+    const frag = document.createDocumentFragment();
+    rows.forEach(r => frag.appendChild(r.tr));
+    tb.appendChild(frag);
+    ths.forEach(th => th.setAttribute('aria-sort', th.dataset.k !== key ? 'none'
+                                    : dir === 1 ? 'ascending' : 'descending'));
+  };
+  ths.forEach(th => th.querySelector('button').addEventListener('click', () => {
+    // A second click on the sorted column reverses it; a new column opens in the direction
+    // that is useful first -- fewest is never what you want from 'Subs'.
+    dir = th.dataset.k === key ? -dir : KEYS[th.dataset.k].dir;
+    key = th.dataset.k;
+    try { localStorage.setItem('sort', key + ' ' + dir); } catch (e) {}
+    sort();
+  }));
+  // Per-viewer convenience, like the checkbox below. Storage can be refused or hold a key
+  // this page no longer has; either way the board opens on the official ranking.
+  try {
+    const s = (localStorage.getItem('sort') || '').split(' ');
+    if (KEYS[s[0]]) { key = s[0]; dir = s[1] === '-1' ? -1 : 1; }
+  } catch (e) {}
+  sort();
   const mins = Math.round((Date.now() - new Date(d.updated)) / 60000);
   const when = mins < 90 ? mins + ' minutes ago'
              : mins < 2880 ? Math.round(mins / 60) + ' hours ago'
